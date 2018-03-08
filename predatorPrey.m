@@ -38,10 +38,15 @@ function F = compute_f_groupname(t,Frmax,Fymax,amiapredator,pr,vr,py,vy)
 % magnitude you specify exceeds the maximum allowable
 % value its magnitude will be reduced to this value
 % (without changing direction)
+
+
+
+
+%disp(Frmax);
 if (amiapredator)
- F=[-Frmax;0];
+ F=[0; Frmax];
 else
- F=[Fymax;0];
+ F=[Fymax / sqrt(2); Fymax / sqrt(2)];
 end
 end
 
@@ -105,26 +110,27 @@ direction=0;
 end 
 
 function animate_projectiles(t,sols)
-figure
-xmax = max(max(sols(:,3)),max(sols(:,1)));
-xmin = min(min(sols(:,3)),min(sols(:,1)));
-ymax = max(max(sols(:,4)),max(sols(:,2)));
-ymin = min(min(sols(:,4)),min(sols(:,2)));
-dx = 0.1*(xmax-xmin)+0.5;
-dy = 0.1*(ymax-ymin)+0.5;
-for i = 1:length(t)
- clf
- plot(sols(1:i,3),sols(1:i,4),'LineWidth',2,'LineStyle',...
- ':','Color',[0 0 1]);
- ylim([ymin-dy ymax+dy]);
- xlim([xmin-dx xmax+dx]);
- hold on
- plot(sols(1:i,1),sols(1:i,2),'LineWidth',2,'LineStyle',':',...
- 'Color',[1 0 0]);
- plot(sols(i,1),sols(i,2),'ro','MarkerSize',11,'MarkerFaceColor','r');
- plot(sols(i,3),sols(i,4),'ro','MarkerSize',5,'MarkerFaceColor','g');
- pause(0.1);
-end
+    figure
+    xmax = max(max(sols(:,3)),max(sols(:,1)));
+    xmin = min(min(sols(:,3)),min(sols(:,1)));
+    ymax = max(max(sols(:,4)),max(sols(:,2)));
+    ymin = min(min(sols(:,4)),min(sols(:,2)));
+    dx = 0.1*(xmax-xmin)+0.5;
+    dy = 0.1*(ymax-ymin)+0.5;
+    for i = 1:length(t)
+        clf
+        plot(sols(1:i,3),sols(1:i,4),'LineWidth',2,'LineStyle',...
+        ':','Color',[0 0 1]);
+        ylim([ymin-dy ymax+dy]);
+        xlim([xmin-dx xmax+dx]);
+        hold on
+        plot(sols(1:i,1),sols(1:i,2),'LineWidth',2,'LineStyle',':',...
+        'Color',[1 0 0]);
+        plot(sols(i,1),sols(i,2),'ro','MarkerSize',11,'MarkerFaceColor','r');
+        plot(sols(i,3),sols(i,4),'ro','MarkerSize',5,'MarkerFaceColor','g');
+        title(['t = ', num2str(i)]);
+        pause(1/60);
+    end
 end
 
 function F = compute_random_force(t,force_table)
