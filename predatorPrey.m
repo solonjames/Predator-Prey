@@ -1,5 +1,7 @@
 function predator_prey
  close all
+ clear all
+ clc
  g = 9.81;
  mr = 100; % Mass of predator, in kg
  my = 10.; % Mass of prey, in kg
@@ -79,31 +81,36 @@ function F = compute_f_groupname(t,Frmax,Fymax,amiapredator,pr,vr,py,vy)
                     % If prey cannot outrun predator, switch to dive mode.
                     direction = -90 * deg2rad;
                     preyMode = 'dive';
-                    disp(['Switch to dive mode @ t = ', num2str(t)]);
+                    disp(['Switch to dive @ t = ', num2str(t)]);
                 end
-                % Makes sure to circularize if the predator is not following for some reason.
-                circularizationChecker();
+                % Makes sure to end dive if predator isn't following and prey is about to hit the ground.
+                if checkArcStart()
+                    direction = 90 * deg2rad;
+                end
             case 'dive'
                 direction = -90 * deg2rad;
-                circularizationChecker();
-            case 'circle'
-                direction = 90 * deg2rad;
+                if checkArcStart()
+                    direction = 90 * deg2rad;
+                end
+            case 'end_dive'
+                direction = 53.13 * deg2rad;
         end
-        
+        disp(v_prey);
         F = getForce(Fymax, direction);
     end
     
-    % Circularization checker.
-    function beginCircularization = circularizationChecker()
-        extraForce = Fymax - g * m_prey; % Force that's not needed to counteract gravity.
-        minRadius = m_prey * v_prey(2)^2 / extraForce; % Minimum radius of curvature for transition into cruising altitude.
-        if p_prey(2) - preyCruisingAltitude < minRadius
-            direction = 90 * deg2rad;
-            preyMode = 'circle';
-            disp(['Switch to circle mode @ t = ', num2str(t)]);
-            beginCircularization = true;
+    function isArcStarting = checkArcStart()
+        safetyFactor = 0.2;
+        if Fymax * (1 - safetyFactor) * (p_prey(2) - preyCruisingAltitude) < 0.5 * m_prey * v_prey(2)^2
+            disp(['Switch to end_dive @ t = ', num2str(t)]);
+            disp('p');
+            disp(p_prey);
+            disp('v');
+            disp(v_prey);
+            preyMode = 'end_dive';
+            isArcStarting = true;
         else
-            beginCircularization = false;
+            isArcStarting = false;
         end
     end
     
