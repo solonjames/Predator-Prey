@@ -6,7 +6,7 @@ function predator_prey
  Frmax = 1.3*mr*g; % Max force on predator, in Newtons
  Fymax = 1.4*my*g; % Max force on prey, in Newtons
  c = 0.2; % Drag coeft, in N s/m
- initial_w = [150,1000,0,1000,0,0,0,0]; % Initial position/velocity
+ initial_w = [0,1000,150,1000,0,0,0,0]; % Initial position/velocity
  force_table_predator = rand(51,2)-0.5;
  force_table_prey = rand(51,2)-0.5;
  options = odeset('Events',@event,'RelTol',0.001);
@@ -56,7 +56,8 @@ function F = compute_f_groupname(t,Frmax,Fymax,amiapredator,pr,vr,py,vy)
     preyCruisingAltitude = 200;
     
     if (amiapredator)
-        direction = 90 * deg2rad;
+        delta = p_prey - p_hunter;
+        direction = atan2(delta(2), delta(1));
         F = getForce(Frmax, direction);
     else
         % Prey code.
@@ -181,7 +182,6 @@ function animate_projectiles(t,sols)
     dy = 0.1*(ymax-ymin)+0.5;
     for i = 1:length(t)
         clf
-        
         plot(sols(1:i,3),sols(1:i,4),'LineWidth',2,'LineStyle',...
         ':','Color',[0 0 1]);
         ylim([ymin-dy ymax+dy]);
@@ -193,10 +193,16 @@ function animate_projectiles(t,sols)
         plot(sols(i,1),sols(i,2),'ro','MarkerSize',11,'MarkerFaceColor','r');
         plot(sols(i,3),sols(i,4),'ro','MarkerSize',5,'MarkerFaceColor','g');
         title(['t = ', num2str(i)]);
-%         quiver(hunter(1),hunter(2),sols(i,9),sols(i,10),20)
-%         quiver(prey(1),prey(2),sols(i,11),sols(i,12),20)
         
-        pause(1/10);
+                
+%       Draws arrows to visualize velocity on both entities.
+%       Draws a force vector on the entity under control.
+        hunter = [sols(i,1) sols(i,2)];
+        prey = [sols(i,3) sols(i,4)];
+        quiver(hunter(1),hunter(2),sols(i,5),sols(i,6),20)
+        quiver(prey(1),prey(2),sols(i,7),sols(i,8),20)
+        
+        pause(1/60);
     end
 end
 
