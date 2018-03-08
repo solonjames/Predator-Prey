@@ -15,6 +15,7 @@ eom(t,w,mr,my,Frmax,Fymax,c,force_table_predator,force_table_prey), ...
  [0:1:250],initial_w,options);
  animate_projectiles(time_vals,sol_vals);
 % test comment
+% test comment 2
 end
 
 function F = compute_f_groupname(t,Frmax,Fymax,amiapredator,pr,vr,py,vy)
