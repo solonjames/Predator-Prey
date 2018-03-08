@@ -67,43 +67,34 @@ function F = compute_f_groupname(t,Frmax,Fymax,amiapredator,pr,vr,py,vy)
         
         switch(preyMode)
             case 'horizontal_escape'
-                if (v_prey(1) >= v_hunter(1) && v_prey(1) >= 0) || (v_prey(1) <= v_hunter(1) && v_prey(1) <= 0)
+                if (v_prey(1) > v_hunter(1) && v_prey(1) > 0) || (v_prey(1) < v_hunter(1) && v_prey(1) < 0)
                     % If prey is currently outrunning predator, keep doing so.
-                    if v_prey(1) >= 0
+                    if v_prey(1) > 0
                         direction = 0 * deg2rad;
                     else
                         direction = 180 * deg2rad;
                     end
+                    disp('asd');
                 else
                     % If prey cannot outrun predator, switch to dive mode.
                     direction = -90 * deg2rad;
                     preyMode = 'dive';
                     disp(['Switch to dive mode @ t = ', num2str(t)]);
                 end
-                % Makes sure to circularize if the predator is not following for some reason.
-                circularizationChecker();
             case 'dive'
-                direction = -90 * deg2rad;
-                circularizationChecker();
+                extraForce = Fymax - g * m_prey; % Force that's not needed to counteract gravity.
+                minRadius = m_prey * v_prey(2)^2 / extraForce; % Minimum radius of curvature for transition into cruising altitude.
+                if p_prey(2) - preyCruisingAltitude < minRadius
+                    direction = 90 * deg2rad;
+                    preyMode = 'circle';
+                    disp(['Switch to circle mode @ t = ', num2str(t)]);
+                    
+                end
             case 'circle'
                 direction = 90 * deg2rad;
         end
         
         F = getForce(Fymax, direction);
-    end
-    
-    % Circularization checker.
-    function beginCircularization = circularizationChecker()
-        extraForce = Fymax - g * m_prey; % Force that's not needed to counteract gravity.
-        minRadius = m_prey * v_prey(2)^2 / extraForce; % Minimum radius of curvature for transition into cruising altitude.
-        if p_prey(2) - preyCruisingAltitude < minRadius
-            direction = 90 * deg2rad;
-            preyMode = 'circle';
-            disp(['Switch to circle mode @ t = ', num2str(t)]);
-            beginCircularization = true;
-        else
-            beginCircularization = false;
-        end
     end
     
     % Calculates force based on magnitude and direction.
