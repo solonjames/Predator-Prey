@@ -83,7 +83,7 @@ end
 
 function [event,stop,direction] = event(t,w)
 % Event function to stop calculation when predator catches prey
-% Write your code here… For the event variable, use the distance between
+% Write your code hereâ€¦ For the event variable, use the distance between
 % predator and prey. You could add other events to detect when predator/prey leave
 % the competition area as well. See the MATLAB manual for how to detect and
 % distinguish between multiple events if you want to do this
@@ -129,6 +129,16 @@ function animate_projectiles(t,sols)
         plot(sols(i,1),sols(i,2),'ro','MarkerSize',11,'MarkerFaceColor','r');
         plot(sols(i,3),sols(i,4),'ro','MarkerSize',5,'MarkerFaceColor','g');
         title(['t = ', num2str(i)]);
+        
+                        
+%         Draws arrows to visualize velocity on both entities.
+%         Draws a force vector on the entity under control.
+
+        hunter = [sols(i,1) sols(i,2)];
+        prey = [sols(i,3) sols(i,4)];
+        quiver(hunter(1),hunter(2),sols(i,5),sols(i,6),50)
+        quiver(prey(1),prey(2),sols(i,7),sols(i,8),50)
+        
         pause(1/60);
     end
 end
@@ -138,7 +148,7 @@ function F = compute_random_force(t,force_table)
 % The variable force_table is a 251x2 matrix of pseudo-random
 % numbers between -0.5 and 0.5, computed using
 % force_table = rand(51,2)-0.5;
-% NB – THE FORCE TABLE MUST BE DEFINED OUTSIDE THIS FUNCTION
+% NB â€“ THE FORCE TABLE MUST BE DEFINED OUTSIDE THIS FUNCTION
 % If you define it in here it fries the ode45 function
 F = [interp1(0:5:250,force_table(:,1),t);...
  interp1(0:5:250,force_table(:,2),t)];
