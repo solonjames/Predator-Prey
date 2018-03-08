@@ -193,7 +193,10 @@ function animate_projectiles(t,sols)
         plot(sols(i,1),sols(i,2),'ro','MarkerSize',11,'MarkerFaceColor','r');
         plot(sols(i,3),sols(i,4),'ro','MarkerSize',5,'MarkerFaceColor','g');
         title(['t = ', num2str(i)]);
-        pause(1/60);
+%         quiver(hunter(1),hunter(2),sols(i,9),sols(i,10),20)
+%         quiver(prey(1),prey(2),sols(i,11),sols(i,12),20)
+        
+        pause(1/10);
     end
 end
 
