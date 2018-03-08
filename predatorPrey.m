@@ -6,7 +6,7 @@ function predator_prey
  Frmax = 1.3*mr*g; % Max force on predator, in Newtons
  Fymax = 1.4*my*g; % Max force on prey, in Newtons
  c = 0.2; % Drag coeft, in N s/m
- initial_w = [150,1000,0,1000,0,0,0,0]; % Initial position/velocity
+ initial_w = [0,1000,150,1000,0,0,0,0]; % Initial position/velocity
  force_table_predator = rand(51,2)-0.5;
  force_table_prey = rand(51,2)-0.5;
  options = odeset('Events',@event,'RelTol',0.001);
@@ -39,14 +39,22 @@ function F = compute_f_groupname(t,Frmax,Fymax,amiapredator,pr,vr,py,vy)
 % value its magnitude will be reduced to this value
 % (without changing direction)
 
+vhunter = vr;
+phunter = pr;
+vprey = vy;
+pprey = py;
 
 
 
 %disp(Frmax);
 if (amiapredator)
- F=[0; Frmax];
+    reticle = pprey - phunter; % Find the distance between the two
+    direction = reticle/norm(reticle); % Unit vector of direction
+    currforce = (direction).*Frmax; % Frmax in direction of prey
+    F = currforce;
 else
- F=[Fymax / sqrt(2); Fymax / sqrt(2)];
+    pointme = [1/sqrt(2) ; 1/sqrt(2)];
+    F=Fymax .* pointme;
 end
 end
 
@@ -83,7 +91,7 @@ end
 
 function [event,stop,direction] = event(t,w)
 % Event function to stop calculation when predator catches prey
-% Write your code hereâ€¦ For the event variable, use the distance between
+% Write your code here… For the event variable, use the distance between
 % predator and prey. You could add other events to detect when predator/prey leave
 % the competition area as well. See the MATLAB manual for how to detect and
 % distinguish between multiple events if you want to do this
@@ -119,6 +127,7 @@ function animate_projectiles(t,sols)
     dy = 0.1*(ymax-ymin)+0.5;
     for i = 1:length(t)
         clf
+
         plot(sols(1:i,3),sols(1:i,4),'LineWidth',2,'LineStyle',...
         ':','Color',[0 0 1]);
         ylim([ymin-dy ymax+dy]);
@@ -130,16 +139,18 @@ function animate_projectiles(t,sols)
         plot(sols(i,3),sols(i,4),'ro','MarkerSize',5,'MarkerFaceColor','g');
         title(['t = ', num2str(i)]);
         
-                        
+                
 %         Draws arrows to visualize velocity on both entities.
 %         Draws a force vector on the entity under control.
-
+        %sprintf('%.6f %.6f\n\n\n',sols)
         hunter = [sols(i,1) sols(i,2)];
         prey = [sols(i,3) sols(i,4)];
-        quiver(hunter(1),hunter(2),sols(i,5),sols(i,6),50)
-        quiver(prey(1),prey(2),sols(i,7),sols(i,8),50)
+        quiver(hunter(1),hunter(2),sols(i,5),sols(i,6),20)
+        quiver(prey(1),prey(2),sols(i,7),sols(i,8),20)
+%         quiver(hunter(1),hunter(2),sols(i,9),sols(i,10),20)
+%         quiver(prey(1),prey(2),sols(i,11),sols(i,12),20)
         
-        pause(1/60);
+        pause(1/10);
     end
 end
 
@@ -148,7 +159,7 @@ function F = compute_random_force(t,force_table)
 % The variable force_table is a 251x2 matrix of pseudo-random
 % numbers between -0.5 and 0.5, computed using
 % force_table = rand(51,2)-0.5;
-% NB â€“ THE FORCE TABLE MUST BE DEFINED OUTSIDE THIS FUNCTION
+% NB – THE FORCE TABLE MUST BE DEFINED OUTSIDE THIS FUNCTION
 % If you define it in here it fries the ode45 function
 F = [interp1(0:5:250,force_table(:,1),t);...
  interp1(0:5:250,force_table(:,2),t)];
