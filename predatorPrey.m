@@ -49,7 +49,7 @@ function F = compute_f_groupname(t,Frmax,Fymax,amiapredator,pr,vr,py,vy)
     deg2rad = pi / 180;
     rad2deg = 180 / pi;
     m_prey = 10;
-    m_predator = 100;
+    m_hunter = 100;
     g = 9.81;
     
     % Defining variables needed for control.
@@ -58,9 +58,52 @@ function F = compute_f_groupname(t,Frmax,Fymax,amiapredator,pr,vr,py,vy)
     preyCruisingAltitude = 200;
     
     if (amiapredator)
+        %original Peter's Code
         delta = p_prey - p_hunter;
         direction = atan2(delta(2), delta(1));
         F = getForce(Frmax, direction);
+        
+        %solon circle hunter (NOT CURRENTLY FUNCTIONAL WORK IN
+        %PROGRESS/USELESS
+        %calculates necessary centripital force
+        %{
+        roc = radiusOfCurvature();
+        Fn = m_hunter * norm(v_hunter)^2 / roc;
+        
+        if Fn>Frmax
+            
+            if p_hunter(1)<p_prey(1)
+                normal = [abs(v_hunter(2)),-1 * (v_hunter(2) / abs(v_hunter(2))) * v_hunter(1)];
+                F=Frmax * normal / norm(normal);
+            else
+                normal = [-1 * abs(v_hunter(2)),(v_hunter(2) / abs(v_hunter(2))) * v_hunter(1)];
+                F=Frmax * normal / norm(normal);
+            end
+        else
+            if p_hunter(1)<p_prey(1)
+                normal = [abs(v_hunter(2)),-1 * (v_hunter(2) / abs(v_hunter(2))) * v_hunter(1)];
+                F=Fn * normal / norm(normal);
+                
+                Ft=sqrt(norm(Frmax)^2-norm(Fn)^2);
+                tangent = v_hunter/norm(v_hunter);
+                F=F+Ft*tangent;
+                
+            else
+                normal = [-1 * abs(v_hunter(2)),(v_hunter(2) / abs(v_hunter(2))) * v_hunter(1)];
+                F=Fn * normal / norm(normal);
+                
+                Ft=sqrt(norm(Frmax)^2-norm(Fn)^2);
+                tangent = v_hunter/norm(v_hunter);
+                F=F+Ft*tangent;
+            end
+        end
+        if norm(F)>Frmax
+            disp('F')
+            disp(F)
+            F=Frmax*F/norm(F);
+        end
+        %}
+        
     else
         % Prey code.
         % Initializing persistent variables.
@@ -95,7 +138,6 @@ function F = compute_f_groupname(t,Frmax,Fymax,amiapredator,pr,vr,py,vy)
             case 'end_dive'
                 direction = 53.13 * deg2rad;
         end
-        disp(v_prey);
         F = getForce(Fymax, direction);
     end
     
@@ -103,14 +145,20 @@ function F = compute_f_groupname(t,Frmax,Fymax,amiapredator,pr,vr,py,vy)
         safetyFactor = 0.2;
         if Fymax * (1 - safetyFactor) * (p_prey(2) - preyCruisingAltitude) < 0.5 * m_prey * v_prey(2)^2
             disp(['Switch to end_dive @ t = ', num2str(t)]);
-            disp('p');
-            disp(p_prey);
-            disp('v');
-            disp(v_prey);
             preyMode = 'end_dive';
             isArcStarting = true;
         else
             isArcStarting = false;
+        end
+    end
+
+    function radius = radiusOfCurvature()
+        if (v_hunter(1) * v_prey(2) - v_hunter(2) * v_prey(1)) ~=0
+            radius = 100;
+        else
+            radius = norm(v_prey) * abs( ( (p_prey(2)-p_hunter(2)) * v_hunter(1) -...
+                (p_prey(1)-p_hunter(1)) * v_hunter(2))...
+                / (v_hunter(1) * v_prey(2) - v_hunter(2) * v_prey(1)));
         end
     end
     
