@@ -134,7 +134,7 @@ function F = compute_f_groupname(t,Frmax,Fymax,amiapredator,pr,vr,py,vy)
                     direction = 90 * deg2rad;
                 end
             case 'dive'
-                direction = -90 * deg2rad + cos(t);
+                direction = -90 * deg2rad + 0.5*cos(t);
                 if checkArcStart()
                     direction = 90 * deg2rad;
                 end
