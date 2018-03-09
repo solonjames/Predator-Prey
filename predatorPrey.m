@@ -56,59 +56,71 @@ function F = compute_f_groupname(t,Frmax,Fymax,amiapredator,pr,vr,py,vy)
     
     % Defining variables needed for control.
     persistent preyMode;
+    persistent predatorMode;
+    predatorDiveHeight = 20;
     direction = 0;
+    relativeSpeedMaxRatio = 1.2;
     preyCruisingAltitude = 75;
     preyPanicLevel = preyCruisingAltitude/2;
     
     if (amiapredator)
-        %original Peter's Code
-        delta = p_prey - p_hunter;
-        direction = atan2(delta(2), delta(1));
-        F = getForce(Frmax, direction);
+        % Predator code.
         
-        %solon circle hunter (NOT CURRENTLY FUNCTIONAL WORK IN
-        %PROGRESS/USELESS
-        %calculates necessary centripital force
-        %{
-        roc = radiusOfCurvature();
-        Fn = m_hunter * norm(v_hunter)^2 / roc;
-        
-        if Fn>Frmax
-            
-            if p_hunter(1)<p_prey(1)
-                normal = [abs(v_hunter(2)),-1 * (v_hunter(2) / abs(v_hunter(2))) * v_hunter(1)];
-                F=Frmax * normal / norm(normal);
-            else
-                normal = [-1 * abs(v_hunter(2)),(v_hunter(2) / abs(v_hunter(2))) * v_hunter(1)];
-                F=Frmax * normal / norm(normal);
-            end
-        else
-            if p_hunter(1)<p_prey(1)
-                normal = [abs(v_hunter(2)),-1 * (v_hunter(2) / abs(v_hunter(2))) * v_hunter(1)];
-                F=Fn * normal / norm(normal);
-                
-                Ft=sqrt(norm(Frmax)^2-norm(Fn)^2);
-                tangent = v_hunter/norm(v_hunter);
-                F=F+Ft*tangent;
-                
-            else
-                normal = [-1 * abs(v_hunter(2)),(v_hunter(2) / abs(v_hunter(2))) * v_hunter(1)];
-                F=Fn * normal / norm(normal);
-                
-                Ft=sqrt(norm(Frmax)^2-norm(Fn)^2);
-                tangent = v_hunter/norm(v_hunter);
-                F=F+Ft*tangent;
-            end
+        % Configures predator mode.
+        if t == 0
+            predatorMode = 'up';
         end
-        if norm(F)>Frmax
-            disp('F')
-            disp(F)
-            F=Frmax*F/norm(F);
-        end
-        %}
         
+        switch predatorMode
+            case 'up'
+                if p_hunter(2) > p_prey(2) + predatorDiveHeight
+                    predatorMode = 'down';
+                end
+                target = [p_prey(1) - p_hunter(1); p_prey(2) + predatorDiveHeight * 2 - p_hunter(2)];
+                direction = atan2(target(2), target(1));
+                F = getForce(Frmax, direction);
+            case 'down'
+                if p_hunter(2) < p_prey(2)
+                    predatorMode = 'up';
+                    disp('HI')
+                end
+                
+                
+                if v_prey(2) > 0
+                    if (p_hunter(1)>p_prey(1))
+                        F=[-sqrt(Frmax^2-((m_hunter-2)*g)^2); (m_hunter-2)*g];
+                    else
+                        F=[sqrt(Frmax^2-((m_hunter-2)*g)^2); (m_hunter-2)*g];
+                    end
+                else
+                    if (p_hunter(1)>p_prey(1))
+                        F=[-sqrt(Frmax^2-((m_hunter-2)*g)^2); (m_hunter-2)*g];
+                    else
+                        F=[sqrt(Frmax^2-((m_hunter-2)*g)^2); (m_hunter-2)*g];
+                    end
+                end
+        end
     else
         % Prey code.
+        %{
+        a = p_hunter;
+        b = p_hunter + v_hunter;
+        c = p_prey;
+        orientation = (c(1) - a(1)) * (b(2) - a(2)) - (c(2) - a(2)) * (b(1) - a(1));
+        if orientation < 0
+            direction = atan2(v_hunter(2), v_hunter(1)) + 90 * deg2rad;
+        else
+            direction = atan2(v_hunter(2), v_hunter(1)) - 90 * deg2rad;
+        end
+        delta = p_hunter - p_prey;
+        distance = sqrt(delta(1)^2 + delta(2)^2);
+        if distance > 20
+            direction = 90 * deg2rad;
+        end
+        F = getForce(Fymax, direction);
+        %}
+        
+        
         % Initializing persistent variables.
         if t == 0
             preyMode = 'horizontal_escape';
@@ -134,7 +146,7 @@ function F = compute_f_groupname(t,Frmax,Fymax,amiapredator,pr,vr,py,vy)
                     direction = 90 * deg2rad;
                 end
             case 'dive'
-                direction = -90 * deg2rad + 0.5*cos(t);
+                direction = -90 * deg2rad + 5*cos(t);
                 if checkArcStart()
                     direction = 90 * deg2rad;
                 end
@@ -167,6 +179,7 @@ function F = compute_f_groupname(t,Frmax,Fymax,amiapredator,pr,vr,py,vy)
                 
         end
         F = getForce(Fymax, direction);
+        
     end
     
     function isArcStarting = checkArcStart()
@@ -276,6 +289,7 @@ function animate_projectiles(t,sols)
         plot(sols(i,1),sols(i,2),'ro','MarkerSize',11,'MarkerFaceColor','r');
         plot(sols(i,3),sols(i,4),'ro','MarkerSize',5,'MarkerFaceColor','g');
         title(['t = ', num2str(i)]);
+        
         
                 
 %       Draws arrows to visualize velocity on both entities.
