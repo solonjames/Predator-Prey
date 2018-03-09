@@ -15,6 +15,8 @@ function predator_prey
  [time_vals,sol_vals] = ode113(@(t,w)...
 eom(t,w,mr,my,Frmax,Fymax,c,force_table_predator,force_table_prey), ...
  [0:1:250],initial_w,options);
+ 
+ sol_vals(:,4)
  animate_projectiles(time_vals,sol_vals);
 end
 
@@ -55,7 +57,8 @@ function F = compute_f_groupname(t,Frmax,Fymax,amiapredator,pr,vr,py,vy)
     % Defining variables needed for control.
     persistent preyMode;
     direction = 0;
-    preyCruisingAltitude = 200;
+    preyCruisingAltitude = 75;
+    preyPanicLevel = preyCruisingAltitude/2;
     
     if (amiapredator)
         %original Peter's Code
@@ -131,18 +134,43 @@ function F = compute_f_groupname(t,Frmax,Fymax,amiapredator,pr,vr,py,vy)
                     direction = 90 * deg2rad;
                 end
             case 'dive'
-                direction = -90 * deg2rad;
+                direction = -90 * deg2rad + cos(t);
                 if checkArcStart()
                     direction = 90 * deg2rad;
                 end
             case 'end_dive'
-                direction = 53.13 * deg2rad;
+                direction = 43.00 * deg2rad;
+                
+                %runs if turning is done
+                if v_prey(2) > 0 
+                    preyMode = 'level flight';
+                    disp(['Switch to level flight @ t = ', num2str(t)]);
+                end
+                
+            case 'level flight'
+                
+                direction = acos(m_prey*g/Fymax);
+                
+                if p_prey(2) < preyPanicLevel
+                    
+                    direction = acos(m_prey*g/Fymax) + sqrt(preyPanicLevel - p_prey(2))/preyPanicLevel...
+                        * (pi/2 - acos(m_prey*g/Fymax));
+                    
+                end
+                
+                if p_prey(2) > 1.5*preyCruisingAltitude
+                    
+                    preyMode = 'dive';
+                    disp(['Switch to dive @ t = ', num2str(t)]);
+                    
+                end
+                
         end
         F = getForce(Fymax, direction);
     end
     
     function isArcStarting = checkArcStart()
-        safetyFactor = 0.2;
+        safetyFactor = 0.5;
         if Fymax * (1 - safetyFactor) * (p_prey(2) - preyCruisingAltitude) < 0.5 * m_prey * v_prey(2)^2
             disp(['Switch to end_dive @ t = ', num2str(t)]);
             preyMode = 'end_dive';
