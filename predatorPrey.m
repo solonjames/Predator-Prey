@@ -15,8 +15,6 @@ function predator_prey
  [time_vals,sol_vals] = ode113(@(t,w)...
 eom(t,w,mr,my,Frmax,Fymax,c,force_table_predator,force_table_prey), ...
  [0:1:250],initial_w,options);
- 
- sol_vals(:,4)
  animate_projectiles(time_vals,sol_vals);
 end
 
@@ -55,6 +53,16 @@ function F = compute_f_groupname(t,Frmax,Fymax,amiapredator,pr,vr,py,vy)
     g = 9.81;
     
     % Defining variables needed for control.
+    % PREY SETTINGS
+    % 0 = near-invincible prey
+    % 1 = dive-bomber
+    % PREDATOR SETTINGS
+    % 0 = black magic
+    % 1 = basic predator
+    preySetting = 1;
+    predatorSetting = 3;
+    
+    
     persistent preyMode;
     persistent predatorMode;
     predatorDiveHeight = 20;
@@ -65,7 +73,48 @@ function F = compute_f_groupname(t,Frmax,Fymax,amiapredator,pr,vr,py,vy)
     
     if (amiapredator)
         % Predator code.
+        switch predatorSetting
+            case 0
+                % David's black magic predator.
+                delta = p_prey + 0.5 * v_prey - p_hunter;
+                direction = atan2(delta(2), delta(1));
+                F_temp = getForce(Frmax, direction) + [0; 100 * 9.81] - v_hunter * 30; %magic constant is 30
+                if norm(F_temp) > Frmax
+                    F = F_temp / norm(F_temp) * Frmax;
+                else
+                    F = F_temp;
+                end
+            case 1
+                % Basic predator code.
+                delta = p_prey + 0.5 * v_prey - p_hunter;
+                direction = atan2(delta(2), delta(1));
+                F = getForce(Frmax, direction);
+            case 2
+                % Orbital ATK.
+                F_gravity = g * m_hunter;
+                F_allowance = Frmax - F_gravity;
+                delta = p_prey - p_hunter;
+                distance = norm(delta);
+                direction = atan2(delta(2), delta(1));
+                if distance < 100
+                    relative_v = dot(v_hunter, v_prey) / dot(v_prey, v_prey) * v_prey;
+                    if norm(relative_v) > 2
+                        direction = atan2(-relative_v(2), -relative_v(1));
+                    end
+                    F = getForce(F_allowance, direction) + [0; F_gravity];
+                else
+                    F = getForce(F_allowance, direction) + [0; F_gravity];
+                end
+            case 3
+                % Bower bot
+                F_gravity = g * m_hunter;
+                F_allowance = Frmax - F_gravity;
+                delta = p_prey - p_hunter + 10 * (v_prey - v_hunter);
+                direction = atan2(delta(2), delta(1));
+                F = getForce(F_allowance, direction) + [0; F_gravity];
+        end
         
+        %{
         % Configures predator mode.
         if t == 0
             predatorMode = 'up';
@@ -82,7 +131,6 @@ function F = compute_f_groupname(t,Frmax,Fymax,amiapredator,pr,vr,py,vy)
             case 'down'
                 if p_hunter(2) < p_prey(2)
                     predatorMode = 'up';
-                    disp('HI')
                 end
                 
                 
@@ -100,86 +148,85 @@ function F = compute_f_groupname(t,Frmax,Fymax,amiapredator,pr,vr,py,vy)
                     end
                 end
         end
+        %}
     else
         % Prey code.
-        %{
-        a = p_hunter;
-        b = p_hunter + v_hunter;
-        c = p_prey;
-        orientation = (c(1) - a(1)) * (b(2) - a(2)) - (c(2) - a(2)) * (b(1) - a(1));
-        if orientation < 0
-            direction = atan2(v_hunter(2), v_hunter(1)) + 90 * deg2rad;
-        else
-            direction = atan2(v_hunter(2), v_hunter(1)) - 90 * deg2rad;
-        end
-        delta = p_hunter - p_prey;
-        distance = sqrt(delta(1)^2 + delta(2)^2);
-        if distance > 20
-            direction = 90 * deg2rad;
-        end
-        F = getForce(Fymax, direction);
-        %}
-        
-        
-        % Initializing persistent variables.
-        if t == 0
-            preyMode = 'horizontal_escape';
-        end
-        
-        switch(preyMode)
-            case 'horizontal_escape'
-                if (v_prey(1) >= v_hunter(1) && v_prey(1) >= 0) || (v_prey(1) <= v_hunter(1) && v_prey(1) <= 0)
-                    % If prey is currently outrunning predator, keep doing so.
-                    if v_prey(1) >= 0
-                        direction = 0 * deg2rad;
-                    else
-                        direction = 180 * deg2rad;
-                    end
+        switch preySetting
+            case 0
+                a = p_hunter;
+                b = p_hunter + v_hunter;
+                c = p_prey;
+                orientation = (c(1) - a(1)) * (b(2) - a(2)) - (c(2) - a(2)) * (b(1) - a(1));
+                if orientation < 0
+                    direction = atan2(v_hunter(2), v_hunter(1)) + 90 * deg2rad;
                 else
-                    % If prey cannot outrun predator, switch to dive mode.
-                    direction = -90 * deg2rad;
-                    preyMode = 'dive';
-                    disp(['Switch to dive @ t = ', num2str(t)]);
+                    direction = atan2(v_hunter(2), v_hunter(1)) - 90 * deg2rad;
                 end
-                % Makes sure to end dive if predator isn't following and prey is about to hit the ground.
-                if checkArcStart()
+                delta = p_hunter - p_prey;
+                distance = sqrt(delta(1)^2 + delta(2)^2);
+                if distance > 100 || p_prey(2) < 50
                     direction = 90 * deg2rad;
                 end
-            case 'dive'
-                direction = -90 * deg2rad + 5*cos(t);
-                if checkArcStart()
-                    direction = 90 * deg2rad;
+                F = getForce(Fymax, direction);
+            case 1
+                if t == 0
+                    preyMode = 'horizontal_escape';
                 end
-            case 'end_dive'
-                direction = 43.00 * deg2rad;
-                
-                %runs if turning is done
-                if v_prey(2) > 0 
-                    preyMode = 'level flight';
-                    disp(['Switch to level flight @ t = ', num2str(t)]);
+
+                switch(preyMode)
+                    case 'horizontal_escape'
+                        if (v_prey(1) >= v_hunter(1) && v_prey(1) >= 0) || (v_prey(1) <= v_hunter(1) && v_prey(1) <= 0)
+                            % If prey is currently outrunning predator, keep doing so.
+                            if v_prey(1) >= 0
+                                direction = 0 * deg2rad;
+                            else
+                                direction = 180 * deg2rad;
+                            end
+                        else
+                            % If prey cannot outrun predator, switch to dive mode.
+                            direction = -90 * deg2rad;
+                            preyMode = 'dive';
+                            disp(['Switch to dive @ t = ', num2str(t)]);
+                        end
+                        % Makes sure to end dive if predator isn't following and prey is about to hit the ground.
+                        if checkArcStart()
+                            direction = 90 * deg2rad;
+                        end
+                    case 'dive'
+                        direction = -90 * deg2rad + 5*cos(t);
+                        if checkArcStart()
+                            direction = 90 * deg2rad;
+                        end
+                    case 'end_dive'
+                        direction = 43.00 * deg2rad;
+
+                        %runs if turning is done
+                        if v_prey(2) > 0 
+                            preyMode = 'level flight';
+                            disp(['Switch to level flight @ t = ', num2str(t)]);
+                        end
+
+                    case 'level flight'
+
+                        direction = acos(m_prey*g/Fymax);
+
+                        if p_prey(2) < preyPanicLevel
+
+                            direction = acos(m_prey*g/Fymax) + sqrt(preyPanicLevel - p_prey(2))/preyPanicLevel...
+                                * (pi/2 - acos(m_prey*g/Fymax));
+
+                        end
+
+                        if p_prey(2) > 1.5*preyCruisingAltitude
+
+                            preyMode = 'dive';
+                            disp(['Switch to dive @ t = ', num2str(t)]);
+
+                        end
+
                 end
-                
-            case 'level flight'
-                
-                direction = acos(m_prey*g/Fymax);
-                
-                if p_prey(2) < preyPanicLevel
-                    
-                    direction = acos(m_prey*g/Fymax) + sqrt(preyPanicLevel - p_prey(2))/preyPanicLevel...
-                        * (pi/2 - acos(m_prey*g/Fymax));
-                    
-                end
-                
-                if p_prey(2) > 1.5*preyCruisingAltitude
-                    
-                    preyMode = 'dive';
-                    disp(['Switch to dive @ t = ', num2str(t)]);
-                    
-                end
-                
+                F = getForce(Fymax, direction);
         end
-        F = getForce(Fymax, direction);
-        
     end
     
     function isArcStarting = checkArcStart()
@@ -236,6 +283,10 @@ function dwdt = eom(t,w,mr,my,Frmax,Fymax,c,forcetable_r,forcetable_y)
  
  ar=Frtotal/mr;
  ay=Fytotal/my;
+ 
+ delta = pr - py;
+ distance = sqrt(delta(1)^2 + delta(2)^2);
+ disp(distance);
  
  dwdt = [vr(1); vr(2); vy(1); vy(2); ar(1); ar(2); ay(1); ay(2)];
 end
