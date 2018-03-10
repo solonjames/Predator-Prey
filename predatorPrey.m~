@@ -327,8 +327,8 @@ function animate_projectiles(t,sols)
     ymin = min(min(sols(:,4)),min(sols(:,2)));
     dx = 0.1*(xmax-xmin)+0.5;
     dy = 0.1*(ymax-ymin)+0.5;
-    i = 1;
-    while(i <= length(t))
+    while(i < length(t))
+    for i = 1:length(t)
         clf
         plot(sols(1:i,3),sols(1:i,4),'LineWidth',2,'LineStyle',...
         ':','Color',[0 0 1]);
@@ -341,10 +341,8 @@ function animate_projectiles(t,sols)
         plot(sols(i,1),sols(i,2),'ro','MarkerSize',11,'MarkerFaceColor','r');
         plot(sols(i,3),sols(i,4),'ro','MarkerSize',5,'MarkerFaceColor','g');
         title(['t = ', num2str(i)]);
-        if i == length(t)
+        if i == length(t) - 1
             i = 1;
-        else
-            i = i + 1;
         end
         
                 
