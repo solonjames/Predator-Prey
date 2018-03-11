@@ -59,7 +59,7 @@ function F = compute_f_groupname(t,Frmax,Fymax,amiapredator,pr,vr,py,vy)
     % PREDATOR SETTINGS
     % 0 = black magic
     % 1 = basic predator
-    preySetting = 0;
+    preySetting = 2;
     predatorSetting = 0;
     
     
@@ -83,6 +83,9 @@ function F = compute_f_groupname(t,Frmax,Fymax,amiapredator,pr,vr,py,vy)
                     F = F_temp / norm(F_temp) * Frmax;
                 else
                     F = F_temp;
+                end
+                if p_hunter(2) < 100
+                    F = [0; Frmax];
                 end
             case 1
                 % Basic predator code.
@@ -226,6 +229,12 @@ function F = compute_f_groupname(t,Frmax,Fymax,amiapredator,pr,vr,py,vy)
 
                 end
                 F = getForce(Fymax, direction);
+            case 2
+                % Sinusoidal prey.
+                F_gravity = g * m_prey;
+                F_allowance = Fymax - F_gravity;
+                direction = t * 10 * deg2rad;
+                F = getForce(F_allowance, direction) + [0; F_gravity];
         end
     end
     
