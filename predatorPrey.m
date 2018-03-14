@@ -60,8 +60,8 @@ function F = compute_f_groupname(t,Frmax,Fymax,amiapredator,pr,vr,py,vy)
     % PREDATOR SETTINGS
     % 0 = black magic
     % 1 = basic predator
-    preySetting = 0;
-    predatorSetting = 0;
+    preySetting = 2;
+    predatorSetting = 4;
     
     
     persistent preyMode;
@@ -120,6 +120,26 @@ function F = compute_f_groupname(t,Frmax,Fymax,amiapredator,pr,vr,py,vy)
                 delta = p_prey - p_hunter + 10 * (v_prey - v_hunter);
                 direction = atan2(delta(2), delta(1));
                 F = getForce(F_allowance, direction) + [0; F_gravity];
+            case 4
+                %presisting through the nite
+                F_gravity = g * m_hunter;
+                F_allowance = Frmax - F_gravity;
+                persistent oldPreyVelocity
+                persistent oldTime
+                p_PreyFinal = p_prey;
+                if t == 0
+                    preyAcceleration = 0;
+                else
+                    preyAcceleration = (v_prey - oldPreyVelocity) / (t - oldTime);
+                    timeK = 0.5;
+                    p_PreyFinal = p_prey + v_prey .* timeK + 0.5 .* preyAcceleration .* timeK^2;
+                end
+                delta = p_PreyFinal - p_hunter;
+                direction = atan2(delta(2), delta(1));
+                F = getForce(F_allowance, direction) + [0; F_gravity];
+                
+                oldPreyVelocity = v_prey;
+                oldTime = t;
         end
         
         %{
@@ -157,6 +177,7 @@ function F = compute_f_groupname(t,Frmax,Fymax,amiapredator,pr,vr,py,vy)
                 end
         end
         %}
+        
     else
         % Prey code.
         switch preySetting
