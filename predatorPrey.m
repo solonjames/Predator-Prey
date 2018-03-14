@@ -16,6 +16,7 @@ function predator_prey
 eom(t,w,mr,my,Frmax,Fymax,c,force_table_predator,force_table_prey), ...
  [0:1:250],initial_w,options);
  animate_projectiles(time_vals,sol_vals);
+ time=max(time_vals)
 end
 
 function F = compute_f_groupname(t,Frmax,Fymax,amiapredator,pr,vr,py,vy)
@@ -76,17 +77,17 @@ function F = compute_f_groupname(t,Frmax,Fymax,amiapredator,pr,vr,py,vy)
         switch predatorSetting
             case 0
                 % David's black magic predator.
-                delta = p_prey + 0.5 * v_prey - p_hunter;
-                direction = atan2(delta(2), delta(1));
-                F_temp = getForce(Frmax, direction) + [0; 100 * 9.81] - v_hunter * 30; %magic constant is 30
-                if norm(F_temp) > Frmax
-                    F = F_temp / norm(F_temp) * Frmax;
-                else
-                    F = F_temp;
-                end
-                if p_hunter(2) < 100
-                    F = [0; Frmax];
-                end
+                    delta = p_prey + 0.5 * v_prey - p_hunter;
+                    direction = atan2(delta(2), delta(1));
+                    F_temp = getForce(Frmax, direction) + [0; 100 * 9.81] - v_hunter * 30; %magic constant is 30
+                    if norm(F_temp) > Frmax
+                        F = F_temp / norm(F_temp) * Frmax;
+                    else
+                        F = F_temp;
+                    end
+                    if p_hunter(2) < 100
+                        F = [0; Frmax];
+                    end
             case 1
                 % Basic predator code.
                 delta = p_prey + 0.5 * v_prey - p_hunter;
@@ -295,7 +296,6 @@ function dwdt = eom(t,w,mr,my,Frmax,Fymax,c,forcetable_r,forcetable_y)
  
  delta = pr - py;
  distance = sqrt(delta(1)^2 + delta(2)^2);
- disp(distance);
  
  dwdt = [vr(1); vr(2); vy(1); vy(2); ar(1); ar(2); ay(1); ay(2)];
 end
