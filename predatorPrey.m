@@ -60,7 +60,7 @@ function F = compute_f_groupname(t,Frmax,Fymax,amiapredator,pr,vr,py,vy)
     % PREDATOR SETTINGS
     % 0 = black magic
     % 1 = basic predator
-    preySetting = 2;
+    preySetting = 0;
     predatorSetting = 0;
     
     
@@ -87,6 +87,10 @@ function F = compute_f_groupname(t,Frmax,Fymax,amiapredator,pr,vr,py,vy)
                     end
                     if p_hunter(2) < 100
                         F = [0; Frmax];
+                    elseif(norm(p_hunter-p_prey) < 5)
+                        difference = p_prey-p_hunter;
+                        direction = atan2(difference(2),difference(1));
+                        F=getForce(Frmax,direction);
                     end
             case 1
                 % Basic predator code.
