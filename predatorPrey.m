@@ -12,8 +12,10 @@ function predator_prey
  force_table_predator = rand(51,2)-0.5;
  force_table_prey = rand(51,2)-0.5;
  options = odeset('Events',@event,'RelTol',0.001);
+ % StartTime;
+ StartTime = clock; 
  [time_vals,sol_vals] = ode113(@(t,w)...
-eom(t,w,mr,my,Frmax,Fymax,c,force_table_predator,force_table_prey), ...
+eom(t,w,mr,my,Frmax,Fymax,c,force_table_predator,force_table_prey, StartTime), ...
  [0:1:250],initial_w,options);
  animate_projectiles(time_vals,sol_vals);
  time=max(time_vals)
@@ -266,7 +268,12 @@ function F = compute_f_groupname(t,Frmax,Fymax,amiapredator,pr,vr,py,vy)
     end
 end
 
-function dwdt = eom(t,w,mr,my,Frmax,Fymax,c,forcetable_r,forcetable_y)
+function dwdt = eom(t,w,mr,my,Frmax,Fymax,c,forcetable_r,forcetable_y,StartTime)
+ TimeElapsed = clock - StartTime;
+ if TimeElapsed(end)>60 %Set it to a value that you want (I chose 10 seconds)
+     return
+ end
+
 % Extract the position and velocity variables from the vector w
 % Note that this assumes the variables are stored in a particular order in w.
  pr=w(1:2); vr=w(5:6); py=w(3:4); vy=w(7:8);
@@ -300,7 +307,7 @@ function dwdt = eom(t,w,mr,my,Frmax,Fymax,c,forcetable_r,forcetable_y)
  dwdt = [vr(1); vr(2); vy(1); vy(2); ar(1); ar(2); ay(1); ay(2)];
 end
 
-function [event,stop,direction] = event(t,w)
+function [event0,stop,direction] = event(t,w)
 % Event function to stop calculation when predator catches prey
 % Write your code here… For the event variable, use the distance between
 % predator and prey. You could add other events to detect when predator/prey leave
@@ -315,12 +322,12 @@ py=w(3:4);
 %checks first if either predator or prey have hit the ground, then moves 
 %on to check distance between objects
 if(pr(2)<0)
-    event=0;
+    event0=0;
 elseif py(2)<0
-    event=0;
+    event0=0;
 else
     %computes distance - 1
-    event=sqrt((pr(1) - py(1))^2 + (pr(2) - py(2))^2) - 1;
+    event0=sqrt((pr(1) - py(1))^2 + (pr(2) - py(2))^2) - 1;
 end
 
 stop = 1;
