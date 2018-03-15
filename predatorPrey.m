@@ -259,11 +259,7 @@ function F = compute_f_groupname(t,Frmax,Fymax,amiapredator,pr,vr,py,vy)
                 F = getForce(F_allowance, direction) + [0; F_gravity];
             case 4
                 % UP prey
-                if p_prey(2) > 100
-                    F = [0; -Fymax];
-                else
-                    F = [0; -Fymax];
-                end
+                F = [-Fymax / sqrt(2); Fymax / sqrt(2)];
         end
     end
     
