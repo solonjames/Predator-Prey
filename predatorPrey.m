@@ -59,10 +59,13 @@ function F = compute_f_groupname(t,Frmax,Fymax,amiapredator,pr,vr,py,vy)
     % PREY SETTINGS
     % 0 = near-invincible prey
     % 1 = dive-bomber
+    % 2 = sinusoidal
+    % 3 = random sinusoidal
+    % 4 = up
     % PREDATOR SETTINGS
     % 0 = black magic
     % 1 = basic predator
-    preySetting = 2;
+    preySetting = 4;
     predatorSetting = 4;
     
     
@@ -73,19 +76,31 @@ function F = compute_f_groupname(t,Frmax,Fymax,amiapredator,pr,vr,py,vy)
     relativeSpeedMaxRatio = 1.2;
     preyCruisingAltitude = 75;
     preyPanicLevel = preyCruisingAltitude/2;
-    
+    persistent oldTime
     if (amiapredator)
         % Predator code.
         switch predatorSetting
             case 0
                 % David's black magic predator.
-                    delta = p_prey + 0.5 * v_prey - p_hunter;
-                    direction = atan2(delta(2), delta(1));
-                    F_temp = getForce(Frmax, direction) + [0; 100 * 9.81] - v_hunter * 30; %magic constant is 30
-                    if norm(F_temp) > Frmax
-                        F = F_temp / norm(F_temp) * Frmax;
+                    disp(['Time step: ', num2str(t - oldTime)]);
+                    if t == 0
+                        oldTime = 0;
                     else
-                        F = F_temp;
+                        oldTime = t; 
+                    end
+                
+                    % CONSTANTS
+                    dt_delta = t - oldTime; % Works: 0.5 or 0.125
+                
+                
+                    delta = p_prey + dt_delta * v_prey - p_hunter;
+                    direction = atan2(delta(2), delta(1));
+                    F_desired = getForce(Frmax, direction) + [0; 100 * 9.81] - v_hunter * 30; %magic constant is 30
+                    if norm(F_desired) > Frmax
+                        disp(['Statistics: Frmax = ', num2str(Frmax), ' F_temp = ', num2str(norm(F_desired)), ' v = ', num2str(norm(v_hunter))]);
+                        F = F_desired / norm(F_desired) * Frmax;
+                    else
+                        F = F_desired;
                     end
                     if p_hunter(2) < 100
                         F = [0; Frmax];
@@ -119,83 +134,56 @@ function F = compute_f_groupname(t,Frmax,Fymax,amiapredator,pr,vr,py,vy)
                 % Bower bot
                 F_gravity = g * m_hunter;
                 F_allowance = Frmax - F_gravity;
-                delta = p_prey - p_hunter + 10 * (v_prey - v_hunter);
+                v_max = 8.29;
+                delta = p_prey - p_hunter - v_hunter / 8.28;
                 direction = atan2(delta(2), delta(1));
                 F = getForce(F_allowance, direction) + [0; F_gravity];
             case 4
-                %presisting through the nite
-                F_gravity = g * m_hunter;
-                F_allowance = Frmax - F_gravity;
-                persistent oldPreyVelocity
-                persistent oldTime
-                p_PreyFinal = p_prey;
-                if t == 0
-                    preyAcceleration = 0;
+                % Improved magical bot.
+                % Constants.
+                dt = 0.15;
+                magicConstant = 30;
+                
+                % Calculates predicted direction to future target.
+                predictedDelta = p_prey + dt * v_prey - p_hunter;
+                direction = atan2(predictedDelta(2), predictedDelta(1));
+                
+                % Calculates desired force.
+                F_desired = getForce(Frmax, direction) + [0; 100 * 9.81] - v_hunter * magicConstant;
+                
+                % If desired force exceeds allowed limit, it's normalized and multiplied by Frmax.
+                if norm(F_desired) > Frmax
+                    F = F_desired / norm(F_desired) * Frmax;
                 else
-                    preyAcceleration = (v_prey - oldPreyVelocity) / (t - oldTime);
-                    timeK = 0.5;
-                    p_PreyFinal = p_prey + v_prey .* timeK + 0.5 .* preyAcceleration .* timeK^2;
-                end
-                delta = p_PreyFinal - p_hunter;
-                direction = atan2(delta(2), delta(1));
-                F = getForce(F_allowance, direction) + [0; F_gravity];
-                
-                oldPreyVelocity = v_prey;
-                oldTime = t;
-        end
-        
-        %{
-        % Configures predator mode.
-        if t == 0
-            predatorMode = 'up';
-        end
-        
-        switch predatorMode
-            case 'up'
-                if p_hunter(2) > p_prey(2) + predatorDiveHeight
-                    predatorMode = 'down';
-                end
-                target = [p_prey(1) - p_hunter(1); p_prey(2) + predatorDiveHeight * 2 - p_hunter(2)];
-                direction = atan2(target(2), target(1));
-                F = getForce(Frmax, direction);
-            case 'down'
-                if p_hunter(2) < p_prey(2)
-                    predatorMode = 'up';
+                    F = F_desired;
                 end
                 
-                
-                if v_prey(2) > 0
-                    if (p_hunter(1)>p_prey(1))
-                        F=[-sqrt(Frmax^2-((m_hunter-2)*g)^2); (m_hunter-2)*g];
-                    else
-                        F=[sqrt(Frmax^2-((m_hunter-2)*g)^2); (m_hunter-2)*g];
-                    end
-                else
-                    if (p_hunter(1)>p_prey(1))
-                        F=[-sqrt(Frmax^2-((m_hunter-2)*g)^2); (m_hunter-2)*g];
-                    else
-                        F=[sqrt(Frmax^2-((m_hunter-2)*g)^2); (m_hunter-2)*g];
-                    end
+                % Prevents the predator from hitting the ground.
+                if p_hunter(2) < 200
+                    F = [0; Frmax];
                 end
         end
-        %}
-        
     else
         % Prey code.
         switch preySetting
             case 0
+                % Calculates whether the prey is to the left or right of
+                % the predator's velocity vector.
                 a = p_hunter;
                 b = p_hunter + v_hunter;
                 c = p_prey;
                 orientation = (c(1) - a(1)) * (b(2) - a(2)) - (c(2) - a(2)) * (b(1) - a(1));
+                
+                % Moves normally away from the predator's velocity vector.
                 if orientation < 0
                     direction = atan2(v_hunter(2), v_hunter(1)) + 90 * deg2rad;
                 else
                     direction = atan2(v_hunter(2), v_hunter(1)) - 90 * deg2rad;
                 end
-                delta = p_hunter - p_prey;
-                distance = sqrt(delta(1)^2 + delta(2)^2);
-                if distance > 100 || p_prey(2) < 150
+                
+                % If far away from the predator or close to the ground,
+                % moves up.
+                if norm(p_prey - p_hunter) > 100 || p_prey(2) < 150
                     direction = 90 * deg2rad;
                 end
                 F = getForce(Fymax, direction);
@@ -263,6 +251,19 @@ function F = compute_f_groupname(t,Frmax,Fymax,amiapredator,pr,vr,py,vy)
                 F_allowance = Fymax - F_gravity;
                 direction = t * 10 * deg2rad;
                 F = getForce(F_allowance, direction) + [0; F_gravity];
+            case 3
+                % Sinusoidal prey 2.
+                F_gravity = g * m_prey;
+                F_allowance = Fymax - F_gravity;
+                direction = t * 10 * deg2rad + sin(t) * 5;
+                F = getForce(F_allowance, direction) + [0; F_gravity];
+            case 4
+                % UP prey
+                if p_prey(2) > 100
+                    F = [0; -Fymax];
+                else
+                    F = [0; -Fymax];
+                end
         end
     end
     
@@ -361,7 +362,7 @@ direction=0;
 end 
 
 function animate_projectiles(t,sols)
-    figure
+    handle = figure;
     xmax = max(max(sols(:,3)),max(sols(:,1)));
     xmin = min(min(sols(:,3)),min(sols(:,1)));
     ymax = max(max(sols(:,4)),max(sols(:,2)));
@@ -370,6 +371,10 @@ function animate_projectiles(t,sols)
     dy = 0.1*(ymax-ymin)+0.5;
     i = 1;
     while(i <= length(t))
+        if ~ishandle(handle)
+            disp('Closed by user.');
+            return
+        end
         clf
         plot(sols(1:i,3),sols(1:i,4),'LineWidth',2,'LineStyle',...
         ':','Color',[0 0 1]);
